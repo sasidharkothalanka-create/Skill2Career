@@ -16,10 +16,11 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "change-this-secret-key-before-deployment")
 
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "localhost"),
-    "user": os.getenv("DB_USER", "root"),
+    "host": os.getenv("DB_HOST"),
+    "user": os.getenv("DB_USER"),
     "password": os.getenv("DB_PASSWORD", ""),
-    "database": os.getenv("DB_NAME", "skill2career"),
+    "database": os.getenv("DB_NAME"),
+    "port": int(os.getenv("DB_PORT",3306))
 }
 import time
 import requests
