@@ -1,7 +1,0 @@
-PASTE YOUR EXISTING CUSTOM GPT'S INSTRUCTIONS HERE.
-
-Important:
-- A private Custom GPT cannot be imported or embedded directly into an external website.
-- Copy its Instructions text from the GPT editor and paste it into this file.
-- If the GPT uses uploaded Knowledge files, those files must be separately added to your website's retrieval system; this starter integration does not automatically import them.
-- Do not paste API keys, passwords, or private user information here.
