@@ -22,6 +22,65 @@ DB_CONFIG = {
     "database": os.getenv("DB_NAME"),
     "port": int(os.getenv("DB_PORT",4000))
 }
+import os
+from groq import Groq
+from dotenv import load_dotenv
+
+load_dotenv()
+
+groq_client = Groq(
+    api_key=os.getenv("GROQ_API_KEY")
+)
+
+GROQ_MODEL = os.getenv(
+    "GROQ_MODEL",
+    "llama-3.3-70b-versatile"
+)
+
+def ask_groq(message, chat_history=None):
+    if not os.getenv("GROQ_API_KEY"):
+        return "AI assistant is not configured."
+
+    messages = [
+        {
+            "role": "system",
+            "content": """
+            You are Skill2Career AI Assistant.
+
+            Help students with:
+            1. Career guidance.
+            2. Programming doubts.
+            3. Skill development.
+            4. Resume building.
+            5. Website navigation.
+            6. Learning roadmaps.
+
+            Give simple, helpful and student-friendly answers.
+            """
+        }
+    ]
+
+    if chat_history:
+        messages.extend(chat_history[-10:])
+
+    messages.append({
+        "role": "user",
+        "content": message
+    })
+
+    try:
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=messages,
+            temperature=0.7,
+            max_completion_tokens=1024
+        )
+
+        return response.choices[0].message.content
+
+    except Exception as error:
+        print("Groq API Error:", error)
+        return "AI assistant is temporarily unavailable. Please try again."
 import time
 import requests
 
