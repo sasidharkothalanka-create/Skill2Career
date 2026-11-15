@@ -1,6 +1,0 @@
-Flask
-mysql-connector-python
-requests
-python-dotenv
-gunicorn
-openai>=1.68.0
