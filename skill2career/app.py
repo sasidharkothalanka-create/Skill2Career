@@ -1,4 +1,100 @@
-        return jsonify({"reply": "Please keep your question under 2,000 characters.", "mode": "error"}), 400
+import os
+import json
+import requests
+from dotenv import load_dotenv
+from functools import wraps
+
+from flask import Flask, request, redirect, url_for, session, flash, render_template_string, jsonify
+import mysql.connector
+from mysql.connector import IntegrityError
+from werkzeug.security import generate_password_hash, check_password_hash
+from markupsafe import escape
+
+load_dotenv()
+
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "change-this-secret-key-before-deployment")
+
+DB_CONFIG = {
+    "host": os.getenv("DB_HOST", "localhost"),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", ""),
+    "database": os.getenv("DB_NAME", "skill2career"),
+}
+def get_db():
+    return mysql.connector.connect(**DB_CONFIG)
+
+def run_query(query, values=(), fetch=False, one=False):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(query, values)
+        result = cursor.fetchone() if one else cursor.fetchall() if fetch else None
+        conn.commit()
+        return result
+    finally:
+        cursor.close()
+        conn.close()
+
+def current_user():
+    if "user_id" not in session:
+        return None
+    return run_query("SELECT * FROM users WHERE id=%s", (session["user_id"],), one=True)
+
+def login_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not current_user():
+            flash("Please log in first.")
+            return redirect(url_for("login"))
+        return fn(*args, **kwargs)
+    return wrapper
+
+BASE = r"""
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }} | Skill2Career</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav class="nav">
+  <a class="brand" href="{{ url_for('home') }}"><span class="brand-icon">S</span> Skill2Career</a>
+  <div class="nav-links">
+    {% if user %}
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('assessment') }}">Assessment</a>
+      <a href="{{ url_for('roadmap') }}">Roadmap</a>
+      <a href="{{ url_for('courses') }}">Courses</a>
+      <a href="{{ url_for('jobs') }}">Careers</a>
+      <a href="{{ url_for('resume') }}">Resume</a>
+      <a class="nav-cta" href="{{ url_for('logout') }}">Logout</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">Login</a>
+      <a class="nav-cta" href="{{ url_for('register') }}">Get started</a>
+    {% endif %}
+  </div>
+</nav>
+<main class="container">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}<div class="flash">{% for message in messages %}{{ message }}{% endfor %}</div>{% endif %}
+  {% endwith %}
+  {{ content|safe }}
+</main>
+
+{% if user %}
+<div id="site-help-widget" class="site-help-widget">
+  <button id="site-help-toggle" class="site-help-toggle" type="button" aria-label="Open Skill2Career help assistant">✦ Help</button>
+  <section id="site-help-panel" class="site-help-panel" hidden aria-label="Skill2Career website help chat">
+    <header class="site-help-header"><div><b>Skill2Career Assistant</b><small>Website help · Groq</small></div><button id="site-help-close" type="button" aria-label="Close chat">×</button></header>
+    <div id="site-help-log" class="site-help-log"><div class="bot-msg">Hi {{ user.name }}! I can guide you around Skill2Career. Ask how to use assessments, roadmaps, courses, progress tracking, careers or the resume builder.</div></div>
+    <form id="site-help-form" class="site-help-form"><input id="site-help-input" maxlength="2000" placeholder="How do I use this page?" required><button class="btn primary" type="submit">Send</button></form>
+    <p class="site-help-note">Do not share passwords or API keys in chat.</p>
+  </section>
+</div>
+return jsonify({"reply": "Please keep your question under 2,000 characters.", "mode": "error"}), 400
 
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
@@ -109,4 +205,4 @@ def not_found(error):
     return page("Not found", "<section class='panel'><h1>Page not found</h1><a href='/'>Go home</a></section>", current_user()), 404
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
